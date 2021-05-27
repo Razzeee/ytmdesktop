@@ -1,0 +1,58 @@
+app-id: com.github.ytmdesktop
+runtime: org.freedesktop.Platform
+runtime-version: "20.08"
+branch: stable
+sdk: org.freedesktop.Sdk
+base: org.electronjs.Electron2.BaseApp
+base-version: stable
+command: run.sh
+separate-locales: false
+finish-args:
+  - --share=ipc
+  - --socket=x11
+  - --socket=pulseaudio
+  - --share=network
+build-options:
+  cflags: -O2 -g
+  cxxflags: -O2 -g
+  env:
+    NPM_CONFIG_LOGLEVEL: info
+modules:
+  - name: nodejs
+    cleanup:
+      - /include
+      - /share
+      - /app/lib/node_modules/npm/changelogs
+      - /app/lib/node_modules/npm/doc
+      - /app/lib/node_modules/npm/html
+      - /app/lib/node_modules/npm/man
+      - /app/lib/node_modules/npm/scripts
+    sources:
+      - type: archive
+        url: https://nodejs.org/dist/v14.9.0/node-v14.9.0.tar.xz
+        sha256: 012ef6b715306a56183696a878a4803c2edab4f25f1bf3f40425320cf28e6ef6
+  - name: ytmdesktop
+    build-options:
+      env:
+        # Need this for electron-download to find the cached electron binary
+        electron_config_cache: /run/build/ytmdesktop/npm-cache
+    buildsystem: simple
+    sources:
+      - type: archive
+        url: https://github.com/ytmdesktop/ytmdesktop/archive/v1.13.0.tar.gz
+        sha256: c50172d473c43eafebd366587c690eec88961f2092d2c7b4dd2904df945ade46
+        dest: main
+      - generated-sources.json
+      # Wrapper to launch the app
+      - type: script
+        dest-filename: run.sh
+        commands:
+          - npm start --prefix=/app/main
+    build-commands:
+      # Install npm dependencies
+      - npm install --prefix=main --offline --cache=/run/build/ytmdesktop/npm-cache/
+      # Bundle app and dependencies
+      - mkdir -p /app/main /app/bin
+      - cp -ra main/* /app/main/
+      # Install app wrapper
+      - install run.sh /app/bin/
